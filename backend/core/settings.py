@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'sales.apps.SalesConfig',
     'accounts.apps.AccountsConfig',
     'sellers.apps.SellersConfig',
-    'configuration.apps.ConfigurationConfig', # ADICIONE AQUI
+    'configuration.apps.ConfigurationConfig',
+    'finance.apps.FinanceConfig', # ADICIONE ESTA LINHA
 ]
 
 # Configurações do Django REST Framework

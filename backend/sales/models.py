@@ -3,6 +3,8 @@ from django.utils import timezone
 from catalog.models import Product
 from customers.models import Customer
 from sellers.models import Seller
+from django.db import transaction
+from finance.models import AccountReceivable, AccountPayable # Importe os modelos financeiros
 
 class Sale(models.Model):
     class SaleStatus(models.TextChoices):
@@ -41,6 +43,63 @@ class Sale(models.Model):
         verbose_name = "Venda"
         verbose_name_plural = "Vendas"
         ordering = ['-created_at']
+
+    # Dentro da classe Sale(models.Model):
+    # Substitua o seu método save() existente (se houver) por este
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs) # Salva a venda primeiro
+
+        # Se for uma nova venda, não há o que processar ainda
+        if is_new:
+            return
+
+        # Dispara a lógica financeira APENAS quando o status muda para 'Concluída'
+        original_status = Sale.objects.get(pk=self.pk).status
+        if original_status != self.SaleStatus.COMPLETED and self.status == self.SaleStatus.COMPLETED:
+            self.generate_financial_entries()
+
+    # Adicione este novo método dentro da classe Sale(models.Model)
+    @transaction.atomic
+    def generate_financial_entries(self):
+        # Limpa lançamentos antigos para o caso de uma revenda
+        AccountReceivable.objects.filter(sale=self).delete()
+        AccountPayable.objects.filter(sale=self).delete()
+
+        # 1. Cria as Contas a Receber a partir das parcelas
+        for installment in self.installments.all():
+            AccountReceivable.objects.create(
+                sale=self,
+                customer=self.customer,
+                description=f"Parcela {installment.installment_number} da OS #{self.id}",
+                amount=installment.amount,
+                due_date=installment.due_date,
+            )
+
+        # 2. Cria a Conta a Pagar da Comissão
+        total_commission = sum(
+            (item.quantity * item.unit_price) * (self.seller.commission_rate / 100)
+            for item in self.items.filter(pays_commission=True)
+        )
+        if total_commission > 0:
+            AccountPayable.objects.create(
+                sale=self,
+                seller=self.seller,
+                category=AccountPayable.PayableCategory.COMMISSION,
+                description=f"Comissão para {self.seller.user.get_full_name()} da OS #{self.id}",
+                amount=total_commission,
+                due_date=self.exit_date, # Pode ser ajustado conforme a regra de negócio
+            )
+
+        # 3. Cria a Conta a Pagar do Imposto
+        if self.tax_amount > 0:
+            AccountPayable.objects.create(
+                sale=self,
+                category=AccountPayable.PayableCategory.TAX,
+                description=f"Imposto (SN) referente à OS #{self.id}",
+                amount=self.tax_amount,
+                due_date=self.exit_date, # Pode ser ajustado
+            )
 
 
 class SaleItem(models.Model):
