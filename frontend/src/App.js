@@ -9,6 +9,8 @@ import SaleFormPage from './pages/SaleFormPage';
 // import SaleDetailPage from './pages/SaleDetailPage'; // Pode comentar ou remover esta linha
 import SellersPage from './pages/SellersPage'; // 1. IMPORTE A NOVA PÁGINA
 import SettingsPage from './pages/SettingsPage'; // Importe a nova página
+import AccountReceivablePage from './pages/AccountReceivablePage'; // Importe a nova página
+import AccountPayablePage from './pages/AccountPayablePage';     // Importe a nova página
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
@@ -66,6 +68,9 @@ function App() {
               <Route path="/sales/:id" element={<SaleFormPage />} /> {/* ALTERE ESTA LINHA */}
               <Route path="/sellers" element={<SellersPage />} /> {/* 2. ADICIONE A ROTA */}
               <Route path="/settings" element={<SettingsPage />} /> {/* Adicione a rota */}
+              <Route path="/finance" element={<Navigate to="/finance/receivable" replace />} />
+              <Route path="/finance/receivable" element={<AccountReceivablePage />} />
+              <Route path="/finance/payable" element={<AccountPayablePage />} />
             </Route>
           </Route>
         </Routes>

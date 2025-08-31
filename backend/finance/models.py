@@ -1,6 +1,4 @@
 from django.db import models
-from sales.models import Sale, Seller
-from customers.models import Customer
 
 class FinancialAccount(models.Model):
     """ Modelo base abstrato para contas a pagar e receber. """
@@ -18,13 +16,13 @@ class FinancialAccount(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     # Liga a conta à venda original, se aplicável
-    sale = models.ForeignKey(Sale, on_delete=models.SET_NULL, null=True, blank=True, related_name='%(class)s_related')
+    sale = models.ForeignKey('sales.Sale', on_delete=models.SET_NULL, null=True, blank=True, related_name='%(class)s_related')
 
     class Meta:
         abstract = True # Torna este modelo uma base, não uma tabela real
 
 class AccountReceivable(FinancialAccount):
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, verbose_name="Cliente")
+    customer = models.ForeignKey('customers.Customer', on_delete=models.PROTECT, verbose_name="Cliente")
 
     def __str__(self):
         return f"Recebível de {self.customer.name} - Venc: {self.due_date}"
@@ -42,7 +40,7 @@ class AccountPayable(FinancialAccount):
 
     category = models.CharField(max_length=20, choices=PayableCategory.choices, default=PayableCategory.OTHER, verbose_name="Categoria")
     # Podemos querer saber a quem pagar (ex: vendedor)
-    seller = models.ForeignKey(Seller, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Vendedor (Comissão)")
+    seller = models.ForeignKey('sellers.Seller', on_delete=models.PROTECT, null=True, blank=True, verbose_name="Vendedor (Comissão)")
 
 
     def __str__(self):

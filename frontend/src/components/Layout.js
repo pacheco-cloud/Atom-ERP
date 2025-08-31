@@ -23,7 +23,8 @@ import {
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
   Logout as LogoutIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  AttachMoney as AttachMoneyIcon // Adicionado para o ícone financeiro
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -33,6 +34,7 @@ const navItems = [
   { text: 'Clientes', icon: <PeopleIcon />, path: '/customers' },
   { text: 'Produtos', icon: <InventoryIcon />, path: '/products' },
   { text: 'Vendas', icon: <PointOfSaleIcon />, path: '/sales' },
+  { text: 'Financeiro', icon: <AttachMoneyIcon />, path: '/finance' }, // Novo item Financeiro
   { text: 'Vendedores', icon: <BadgeIcon />, path: '/sellers' }, // ADICIONE ESTA LINHA
   { text: 'Configurações', icon: <SettingsIcon />, path: '/settings' }, // Adicione o item
 ];
