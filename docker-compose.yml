@@ -1,0 +1,84 @@
+services:
+  # --- SERVIÇO DO BANCO DE DADOS (POSTGRESQL) ---
+  db:
+    image: postgres:15-alpine # Usa a imagem oficial e leve do PostgreSQL v15.
+    container_name: erp_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/ # Garante que os dados do banco persistam mesmo se o container parar.
+    environment:
+      # Variáveis de ambiente para configurar o banco de dados.
+      # Usaremos um arquivo .env para manter estas credenciais seguras.
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432" # Mapeia a porta do container para a sua máquina. Útil para conectar com ferramentas de DB como DBeaver.
+    healthcheck:
+      # Testa se o postgres está pronto para aceitar conexões.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - erp_network
+
+  # --- SERVIÇO DO BACKEND (DJANGO) ---
+  backend:
+    build: ./backend # Instrui o Docker a construir a imagem a partir do Dockerfile na pasta 'backend'.
+    container_name: erp_backend
+    command: >
+      sh -c "
+        python manage.py migrate && 
+        python manage.py runserver 0.0.0.0:8000
+      " # Comando para iniciar o servidor Django.
+    volumes:
+      - ./backend:/app # Mapeia a pasta local 'backend' para a pasta '/app' no container.
+                       # Isso permite que alterações no código local reflitam instantaneamente no container (hot-reload).
+    ports:
+      - "8000:8000" # Mapeia a porta do servidor Django para a sua máquina.
+    env_file:
+      - ./.env # Carrega as variáveis de ambiente do arquivo .env.
+    environment:
+      # Adiciona o diretório do projeto ao PYTHONPATH para resolver importações de módulos.
+      - PYTHONPATH=/app
+    depends_on:
+      db:
+        # Garante que o backend só vai iniciar DEPOIS que o healthcheck do 'db' passar.
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - erp_network
+
+  # --- SERVIÇO DO FRONTEND (REACT/VUE) ---
+  # Vamos deixar definido, mas focaremos no backend primeiro.
+  frontend:
+    build: ./frontend
+    container_name: erp_frontend
+    volumes:
+      - ./frontend:/app # Mapeia o código do frontend para o container.
+      - /app/node_modules # Um truque para não sobrescrever a pasta node_modules de dentro do container.
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Ajuda o hot-reload do React/Vue a funcionar melhor dentro do Docker.
+    restart: unless-stopped
+    networks:
+      - erp_network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - erp_network
+
+# Define a rede customizada para os serviços
+networks:
+  erp_network:
+    driver: bridge
+
+# Define os volumes que podem ser compartilhados entre os containers
+volumes:
+  postgres_data: # O "HD virtual" para nosso banco de dados.

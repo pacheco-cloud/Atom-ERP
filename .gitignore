@@ -1,0 +1,14 @@
+# Ignorar arquivos de ambiente, logs, etc.
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Node
+node_modules/
+build/
+.npm
+
+# VSCode
+.vscode/
